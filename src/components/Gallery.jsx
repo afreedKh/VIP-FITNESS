@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMedia } from '../context/MediaContext'
+import { useScrollReveal } from '../hooks/useScrollReveal'
 
-// Layout classes: slot 0 = wide+tall (big left), slot 5 = wide (bottom)
 const gridClasses = ['wide tall', '', '', '', '', 'wide']
 
 export default function Gallery() {
-  const { homeMedia, generalMedia } = useMedia()
+  const { homeMedia, generalMedia, loading } = useMedia()
   const navigate  = useNavigate()
   const [lightbox, setLightbox] = useState(null)
 
-  // homeMedia is already sorted by homeSlot (0–5) from context
+  // Re-run scroll reveal whenever homeMedia changes so newly uploaded
+  // items (which arrive as new DOM nodes) get the 'visible' class applied.
+  useScrollReveal([homeMedia.length])
+
   const preview = homeMedia.slice(0, 6)
   const totalGalleryCount = generalMedia.length
 
@@ -24,19 +27,29 @@ export default function Gallery() {
           <h2 className="section-title">Our <span className="accent">Gallery</span></h2>
         </div>
 
-        <div className="gallery-grid">
-          {preview.map((item, i) => (
-            <GalleryThumb
-              key={item.id}
-              item={item}
-              className={`gallery-item reveal ${gridClasses[i] || ''}`}
-              style={{ transitionDelay: `${i * 0.05}s` }}
-              onClick={() => setLightbox(item)}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '4rem 0', color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>
+            Loading gallery…
+          </div>
+        ) : preview.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '4rem 0', color: 'rgba(255,255,255,0.25)', fontSize: '0.88rem' }}>
+            <p style={{ fontSize: '2rem', marginBottom: '1rem' }}>🏋️</p>
+            <p>No gallery images yet. Upload media from the admin panel.</p>
+          </div>
+        ) : (
+          <div className="gallery-grid">
+            {preview.map((item, i) => (
+              <GalleryThumb
+                key={item.id}
+                item={item}
+                className={`gallery-item reveal ${gridClasses[i] || ''}`}
+                style={{ transitionDelay: `${i * 0.05}s` }}
+                onClick={() => setLightbox(item)}
+              />
+            ))}
+          </div>
+        )}
 
-        {/* View More button */}
         <div className="reveal" style={{ textAlign: 'center', marginTop: '3rem' }}>
           <button
             className="btn-primary"
@@ -52,7 +65,6 @@ export default function Gallery() {
         </div>
       </div>
 
-      {/* Lightbox */}
       {lightbox && (
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -70,7 +82,6 @@ export default function Gallery() {
             )}
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
               <span style={{ fontFamily: "'Oswald', sans-serif", color: '#fff', fontSize: '0.95rem', textTransform: 'uppercase' }}>{lightbox.title}</span>
-              <span style={{ color: '#FF4400', fontSize: '0.8rem', textTransform: 'capitalize', fontFamily: "'Oswald', sans-serif" }}>{lightbox.category}</span>
             </div>
           </div>
         </div>
